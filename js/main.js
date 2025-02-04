@@ -5,7 +5,10 @@ let app = new Vue({
         product: "Socks" ,
         description: "A pair of warm, fuzzy socks" ,
         image: "./assets/vmSocks-blue-onWhite.jpg" ,
-        altText: "A pair of socks"
+        altText: "A pair of socks" ,
+        inventory: 10 ,
+        onSale: "On Sale" ,
+
 
     }
 })
