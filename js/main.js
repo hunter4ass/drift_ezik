@@ -1,14 +1,11 @@
 let eventBus = new Vue();
-//vue.js — это прогрессивный JavaScript-фреймворк,
-// который используется для создания пользовательских
-// интерфейсов и одностраничных приложений.
-Vue.component('product-tabs', { //Vue позволяет разбивать приложение на компоненты,
-    // что делает код более организованным и переиспользуемым. Компоненты могут быть определены как глобальные или локальные.
+Vue.component('product-tabs', {
 
 
-    props: { //это механизм, который позволяет передавать данные от родительского компонента к дочернему.
+
+    props: {
         reviews: {
-            type: Array, //то структура данных, которая позволяет хранить коллекцию элементов, обычно одного типа, в упорядоченном виде.
+            type: Array,
             required: true
         },
         shippingCost: {
@@ -186,6 +183,8 @@ Vue.component('product', {
       <ul>
       <li v-for="size in sizes">{{size}}</li>
       </ul>
+      <p>Materials: {{ material }}</p> 
+      <p>Price: {{ price }}</p> 
       <button
               v-on:click="addToCart"
               :disabled="!inStock"
@@ -212,13 +211,24 @@ Vue.component('product', {
                     variantId: 2234,
                     variantColor: 'green',
                     variantImage: "./assets/vmSocks-green-onWhite.jpg",
-                    variantQuantity: 10
+                    variantQuantity: 10 ,
+                    basePrice: 25,
+                    materials: [
+                        { name: 'Cotton', coefficient: 0.5 },
+                        { name: 'Polyester', coefficient: 0.5 }
+                    ]
                 },
                 {
                     variantId: 2235,
                     variantColor: 'blue',
                     variantImage: "./assets/vmSocks-blue-onWhite.jpg",
-                    variantQuantity: 0
+                    variantQuantity: 10,
+                    basePrice: 19,
+                    materials: [
+                        { name: 'wool', coefficient: 0.4 },
+                        { name: 'neilon', coefficient: 0.2 },
+                        { name: 'barashek', coefficient: 0.4 }
+                    ]
                 }
             ],
             reviews: [],
@@ -264,10 +274,18 @@ Vue.component('product', {
         shipping() {
             return this.premium ? "Free" : 2.99;
         },
+        material() {
+            return this.variants[this.selectedVariant].materials.map(material => material.name).join(' , ');
+        },
+        price() {
+            const basePrice = this.variants[this.selectedVariant].basePrice;
+            const totalCoefficient = this.variants[this.selectedVariant].materials.reduce((total, material) => total + material.coefficient, 1);
+            return (basePrice * totalCoefficient).toFixed(2);
+        },
     },
 });
 
-let app = new Vue({ //Каждое Vue-приложение начинается с создания экземпляра Vue. Это делается с помощью конструктора
+let app = new Vue({
     el: '#app',
     data: {
         premium: true,
@@ -285,12 +303,3 @@ let app = new Vue({ //Каждое Vue-приложение начинается
         }
     }
 });
-//Vue использует HTML-шаблоны, которые позволяют вам связывать данные с представлением.
-// Вы можете использовать специальные директивы, такие как v-bind, v-model, v-if, v-for и другие.
-//Директивы — это специальные атрибуты, которые добавляют реактивность к элементам. Например:
-//
-// v-bind: связывает атрибуты элемента с данными.
-// v-model: создает двустороннюю привязку данных для форм.
-// v-if: условно отображает элементы.
-// v-for: используется для рендеринга списков.
-
