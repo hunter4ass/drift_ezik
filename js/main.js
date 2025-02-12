@@ -1,305 +1,141 @@
-let eventBus = new Vue();
-Vue.component('product-tabs', {
-
-
-
-    props: {
-        reviews: {
-            type: Array,
-            required: true
-        },
-        shippingCost: {
-            type: String,
-            required: true
-        },
-        details: {
-            type: Array,
-            required: true
-        }
-    },
-    template: `
-   <div>   
-       <ul>
-         <span class="tab"
-               :class="{ activeTab: selectedTab === tab }"
-               v-for="(tab, index) in tabs"
-               @click="selectedTab = tab"
-         >{{ tab }}</span>
-       </ul>
-       <div v-show="selectedTab === 'Reviews'">
-         <p v-if="!reviews.length">There are no reviews yet.</p>
-         <ul>
-           <li v-for="review in reviews" :key="review.name">
-           <p>{{ review.name }}</p>
-           <p>Rating: {{ review.rating }}</p>
-           <p>{{ review.review }}</p>
-           <p>you recommend this product:{{ review.recomend }}</p>
-           </li>
-         </ul>
-       </div>
-       <div v-show="selectedTab === 'Make a Review'">
-         <product-review @review-submitted="addReview"></product-review>
-       </div>
-       <div v-show="selectedTab === 'Shipping'">
-         <p>Shipping cost: {{ shippingCost }}</p>
-       </div>
-       <div v-show="selectedTab === 'Details'">
-         <ul>
-           <li v-for="detail in details" :key="detail">{{ detail }}</li>
-         </ul>
-       </div>
-     </div>
- `,
-    data() {
-        return {
-            tabs: ['Reviews', 'Make a Review', 'Shipping', 'Details'],
-            selectedTab: 'Reviews'
-        }
-    },
-    methods: {
-        addReview(review) {
-            this.$emit('review-submitted', review);
-        }
-    }
-});
-
-Vue.component('product-review', {
-    template: `
-<form class="review-form" @submit.prevent="onSubmit">
-<p v-if="errors.length">
- <b>Please correct the following error(s):</b>
- <ul>
-   <li v-for="error in errors">{{ error }}</li>
- </ul>
-</p>
- <p>
-   <label for="name">Name:</label>
-   <input id="name" v-model="name" placeholder="name">
- </p>
- <p>
-   <label for="review">Review:</label>
-   <textarea id="review" v-model="review"></textarea>
- </p>
- <p>
-   <label for="rating">Rating:</label>
-   <select id="rating" v-model.number="rating">
-     <option>5</option>
-     <option>4</option>
-     <option>3</option>
-     <option>2</option>
-     <option>1</option>
-   </select>
- </p>
- <p>
-   <label>Would you recommend this product?</label>
-   
-  <lable>
-  <input type="radio" value="yes" v-model="recomend">yes
-  </lable>
-    <lable>
-  <input type="radio" value="no" v-model="recomend">no
-  </lable>
-   
- </p>
- <p>
-   <input type="submit" value="Submit"> 
- </p>
-</form>
- `,
-    data() {
-        return {
-            name: null,
-            review: null,
-            rating: null,
-            recomend: null,
-            errors: []
-        }
-    },
-    methods: {
-        onSubmit() {
-            if (this.name && this.review && this.rating) {
-                let productReview = {
-                    name: this.name,
-                    review: this.review,
-                    rating: this.rating,
-                    recomend: this.recomend
-                };
-                eventBus.$emit('review-submitted', productReview);
-                this.name = null;
-                this.review = null;
-                this.rating = null;
-                this.recomend = null;
-            } else {
-                if (!this.name) this.errors.push("Name required.");
-                if (!this.review) this.errors.push("Review required.");
-                if (!this.rating) this.errors.push("Rating required.");
-                if (!this.recomend) this.errors.push("Recommendation required.");
-            }
-        }
-    }
-});
-
-Vue.component('product-details', {
-    props: {
-        details: {
-            type: Array,
-            required: true
-        }
-    },
-    template: `
-      <ul>
-         <li v-for="detail in details" :key="detail">{{ detail }}</li>
-      </ul>
-    `
-});
-
-Vue.component('product', {
-    props: {
-        premium: {
-            type: Boolean,
-            required: true
-        }
-    },
-    template: `
-   <div class="product">
-    <div class="product-image">
-      <img :src="image" :alt="altText"/>
-    </div>
-    <div class="product-info">
-      <h1>{{ title }}</h1>
-      <p>{{description}}</p>
-      <a :href="link">More products like this</a>
-      <p v-if="inStock">In stock</p>
-      <p v-else :class="{ strikethrough: !inStock }">Out of stock</p>
-      <span>{{sale}}</span>
-      <div
-              class="color-box"
-              v-for="(variant, index) in variants"
-              :key="variant.variantId"
-              :style="{ backgroundColor:variant.variantColor }"
-              @mouseover="updateProduct(index)"
-      >
-      </div>
-      <ul>
-      <li v-for="size in sizes">{{size}}</li>
-      </ul>
-      <p>Materials: {{ material }}</p> 
-      <p>Price: {{ price }}</p> 
-      <button
-              v-on:click="addToCart"
-              :disabled="!inStock"
-              :class="{ disabledButton: !inStock }"
-      >
-        Add to cart
-      </button>
-      <button v-on:click="delCart">del to cart</button>
-   </div>
-   <product-tabs :reviews="reviews" :shipping-cost="shipping" :details="details" @review-submitted="addReview"></product-tabs>
- ` ,
-    data() {
-        return {
-            link: "https://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=socks",
-            product: "Socks",
-            brand: 'Vue Mastery',
-            description: "A pair of warm, fuzzy socks",
-            selectedVariant: 0,
-            altText: "A pair of socks",
-            onSale: false,
-            details: ['80% cotton', '20% polyester', 'Gender-neutral'],
-            variants: [
-                {
-                    variantId: 2234,
-                    variantColor: 'green',
-                    variantImage: "./assets/vmSocks-green-onWhite.jpg",
-                    variantQuantity: 10 ,
-                    basePrice: 25,
-                    materials: [
-                        { name: 'Cotton', coefficient: 0.5 },
-                        { name: 'Polyester', coefficient: 0.5 }
-                    ]
-                },
-                {
-                    variantId: 2235,
-                    variantColor: 'blue',
-                    variantImage: "./assets/vmSocks-blue-onWhite.jpg",
-                    variantQuantity: 10,
-                    basePrice: 19,
-                    materials: [
-                        { name: 'wool', coefficient: 0.4 },
-                        { name: 'neilon', coefficient: 0.2 },
-                        { name: 'barashek', coefficient: 0.4 }
-                    ]
-                }
-            ],
-            reviews: [],
-            sizes: ['S', 'M', 'L', 'XL', 'XXL', 'XXXL'],
-            cart: 0,
-        }
-    },
-    methods: {
-        addToCart() {
-            this.$emit('add-to-cart', this.variants[this.selectedVariant].variantId);
-        },
-        updateProduct(index) {
-            this.selectedVariant = index;
-            console.log(index);
-        },
-        delCart() {
-            this.$emit('delete-cart', this.variants[this.selectedVariant].variantId);
-        },
-        addReview(review) {
-            this.reviews.push(review);
-        }
-    },
-    mounted() {
-        eventBus.$on('review-submitted', productReview => {
-            this.reviews.push(productReview);
-        });
-    },
-    computed: {
-        title() {
-            return this.brand + ' ' + this.product;
-        },
-        inStock() {
-            return this.variants[this.selectedVariant].variantQuantity;
-        },
-        image() {
-            return this.variants[this.selectedVariant].variantImage;
-        },
-        sale() {
-            return this.onSale
-                ? `Сейчас распродажа на ${this.brand} ${this.product}!`
-                : `На ${this.brand} ${this.product} распродаж нет.`;
-        },
-        shipping() {
-            return this.premium ? "Free" : 2.99;
-        },
-        material() {
-            return this.variants[this.selectedVariant].materials.map(material => material.name).join(' , ');
-        },
-        price() {
-            const basePrice = this.variants[this.selectedVariant].basePrice;
-            const totalCoefficient = this.variants[this.selectedVariant].materials.reduce((total, material) => total + material.coefficient, 1);
-            return (basePrice * totalCoefficient).toFixed(2);
-        },
-    },
-});
-
-let app = new Vue({
+new Vue({
     el: '#app',
     data: {
-        premium: true,
-        cart: [],
+        columns: [[], [], []],
+        columnLocked: false,
+        isAddingCard: false,
+        newCardTitle: '',
+        newCardItems: [{ text: '' }, { text: '' }, { text: '' }],
+        currentColumnIndex: 0,
+        errorMessage: '', // Переменная для хранения сообщения об ошибке
+    },
+    template: `
+        <div>
+            <div class="columns">
+                <div class="column" v-for="(column, index) in columns" :key="index">
+                    <h2>Столбец {{ index + 1 }}</h2>
+                    <div class="card-container">
+                        <div class="card" v-for="card in column" :key="card.id">
+                            <h3>{{ card.title }}</h3>
+                            <ul>
+                                <li v-for="(item, itemIndex) in card.items" :key="itemIndex">
+                                    <input type="checkbox" v-model="item.completed" @change="updateCard(card)">
+                                    {{ item.text }}
+                                </li>
+                            </ul>
+                            <p v-if="card.completedAt">Завершено: {{ card.completedAt }}</p>
+                            <button @click="removeCard(column, card)">Удалить карточку</button>
+                            <button @click="editCard(card)">Изменить содержание</button>
+                        </div>
+                    </div>
+                    <button v-if="canAddCard(index) && !isColumnLocked(index)" @click="startAddingCard(index)">Добавить карточку</button>
+                </div>
+            </div>
+
+            <div class="add-card-form" v-if="isAddingCard">
+                <h3>Добавить карточку в Столбец {{ currentColumnIndex + 1 }}</h3>
+                <input v-model="newCardTitle" placeholder="Заголовок карточки" />
+                <div v-for="(item, index) in newCardItems" :key="index">
+                    <input v-model="item.text" placeholder="Текст пункта списка" />
+                    <button v-if="newCardItems.length > 3" @click="removeNewItem(index)">Удалить пункт</button>
+                </div>
+                <button v-if="newCardItems.length < 5" @click="addNewItem">Добавить пункт списка</button>
+                <button @click="addNewCard">Подтвердить</button>
+                <button @click="cancelAddCard">Отмена</button>
+            </div>
+
+            <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+        </div>
+    `,
+    created() {
+        this.loadData();
     },
     methods: {
-        updateCart(id) {
-            this.cart.push(id);
-        },
-        delCart(id) {
-            const index = this.cart.indexOf(id);
-            if (index > -1) {
-                this.cart.splice(index, 1);
+        loadData() {
+            const data = JSON.parse(localStorage.getItem('noteAppData'));
+            if (data) {
+                this.columns = data.columns;
             }
+        },
+        saveData() {
+            localStorage.setItem('noteAppData', JSON.stringify({ columns: this.columns }));
+        },
+        startAddingCard(columnIndex) {
+            this.isAddingCard = true;
+            this.newCardTitle = '';
+            this.newCardItems = [{ text: '' }, { text: '' }, { text: '' }];
+            this.currentColumnIndex = columnIndex;
+            this.errorMessage = '';
+        },
+        addNewItem() {
+            if (this.newCardItems.length < 5) {
+                this.newCardItems.push({ text: '' });
+            }
+        },
+        removeNewItem(index) {
+            this.newCardItems.splice(index, 1);
+        },
+        addNewCard() {
+            const items = this.newCardItems.filter(item => item.text.trim() !== '');
+            if (this.newCardTitle.trim() !== '' && items.length >= 3 && items.length <= 5) {
+                const newCard = { id: Date.now(), title: this.newCardTitle, items, completedAt: null };
+                this.columns[this.currentColumnIndex].push(newCard);
+                this.saveData();
+                this.cancelAddCard();
+            } else {
+                this.errorMessage = 'Пожалуйста, заполните заголовок карточки и добавьте от 3 до 5 пунктов списка.';
+            }
+        },
+        cancelAddCard() {
+            this.isAddingCard = false;
+            this.errorMessage = '';
+        },
+        removeCard(column, card) {
+            const index = column.indexOf(card);
+            if (index > -1) {
+                column.splice(index, 1);
+                this.saveData();
+            }
+        },
+        editCard(card) {
+            this.newCardTitle = card.title;
+            this.newCardItems = card.items.map(item => ({ text: item.text }));
+            this.isAddingCard = true;
+            this.currentColumnIndex = this.columns.findIndex(column => column.includes(card));
+            this.errorMessage = '';
+        },
+        updateCard(card) {
+            const totalItems = card.items.length;
+            const completedItems = card.items.filter(item => item.completed).length;
+
+            if (completedItems > totalItems / 2 && this.columns[0].includes(card)) {
+                if (this.columns[1].length >= 5) {
+                    this.errorMessage = 'Во втором столбце нет места';
+                    return; // Прерываем выполнение, если нет места
+                }
+                this.moveCard(card, 1);
+            } else if (completedItems === totalItems && this.columns[1].includes(card)) {
+                this.moveCard(card, 2);
+            }
+
+            this.checkColumnLock();
+            this.saveData();
+        },
+        moveCard(card, targetColumnIndex) {
+            const sourceColumnIndex = this.columns.findIndex(column => column.includes(card));
+            if (sourceColumnIndex !== -1) {
+                this.columns[sourceColumnIndex].splice(this.columns[sourceColumnIndex].indexOf(card), 1);
+                this.columns[targetColumnIndex].push(card);
+            }
+        },
+        checkColumnLock() {
+            this.columnLocked = this.columns[1].length >= 5;
+        },
+        canAddCard(index) {
+            return this.columns[index].length < 5;
+        },
+        isColumnLocked(index) {
+            return this.columnLocked && index === 1;
         }
     }
 });
