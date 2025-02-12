@@ -7,6 +7,7 @@ new Vue({
         newCardTitle: '',
         newCardItems: [{ text: '' }, { text: '' }, { text: '' }],
         currentColumnIndex: 0,
+        currentCard: null, // Для хранения редактируемой карточки
         errorMessage: '',
     },
     template: `
@@ -33,14 +34,14 @@ new Vue({
             </div>
 
             <div class="add-card-form" v-if="isAddingCard">
-                <h3>Добавить карточку в Столбец {{ currentColumnIndex + 1 }}</h3>
+                <h3>{{ currentCard ? 'Изменить карточку' : 'Добавить карточку' }} в Столбец {{ currentColumnIndex + 1 }}</h3>
                 <input v-model="newCardTitle" placeholder="Заголовок карточки" />
                 <div v-for="(item, index) in newCardItems" :key="index">
                     <input v-model="item.text" placeholder="Текст пункта списка" />
                     <button v-if="newCardItems.length > 3" @click="removeNewItem(index)">Удалить пункт</button>
                 </div>
                 <button v-if="newCardItems.length < 5" @click="addNewItem">Добавить пункт списка</button>
-                <button @click="addNewCard">Подтвердить</button>
+                <button @click="currentCard ? updateExistingCard() : addNewCard()">{{ currentCard ? 'Сохранить изменения' : 'Подтвердить' }}</button>
                 <button @click="cancelAddCard">Отмена</button>
             </div>
 
@@ -65,30 +66,30 @@ new Vue({
             this.newCardTitle = '';
             this.newCardItems = [{ text: '' }, { text: '' }, { text: '' }];
             this.currentColumnIndex = columnIndex;
+            this.currentCard = null; // Сбрасываем текущую карточку
             this.errorMessage = '';
         },
         addNewItem() {
-            if (this.newCardItems.length < 5) {
-                this.newCardItems.push({ text: '' });
-            }
+            this.newCardItems.push({ text: '' }); // Добавляем новый пустой пункт списка
         },
         removeNewItem(index) {
-            this.newCardItems.splice(index, 1);
+            this.newCardItems.splice(index, 1); // Удаляем пункт списка по индексу
         },
         addNewCard() {
             const items = this.newCardItems.filter(item => item.text.trim() !== '');
-            if (this.newCardTitle.trim() !== '' && items.length >= 3 && items.length <= 5) {
+            if (this.newCardTitle.trim() !== '' && items.length >= 3) { // Минимум три пункта
                 const newCard = { id: Date.now(), title: this.newCardTitle, items, completedAt: null };
                 this.columns[this.currentColumnIndex].push(newCard);
                 this.saveData();
                 this.cancelAddCard();
             } else {
-                this.errorMessage = 'Заполните заголовок карточки и заполни от 3 до 5 пунктов списка.';
+                this.errorMessage = 'Заполните заголовок карточки и добавьте минимум три пункта списка.';
             }
         },
         cancelAddCard() {
             this.isAddingCard = false;
             this.errorMessage = '';
+            this.currentCard = null; // Сбрасываем текущую карточку
         },
         removeCard(column, card) {
             const index = column.indexOf(card);
@@ -102,7 +103,19 @@ new Vue({
             this.newCardItems = card.items.map(item => ({ text: item.text }));
             this.isAddingCard = true;
             this.currentColumnIndex = this.columns.findIndex(column => column.includes(card));
+            this.currentCard = card; // Устанавливаем редактируемую карточку
             this.errorMessage = '';
+        },
+        updateExistingCard() {
+            const items = this.newCardItems.filter(item => item.text.trim() !== '');
+            if (this.newCardTitle.trim() !== '' && items.length >= 3) {
+                this.currentCard.title = this.newCardTitle;
+                this.currentCard.items = items;
+                this.saveData();
+                this.cancelAddCard();
+            } else {
+                this.errorMessage = 'Заполните заголовок карточки и добавьте минимум три пункта списка.';
+            }
         },
         updateCard(card) {
             const totalItems = card.items.length;
@@ -132,6 +145,7 @@ new Vue({
             this.columnLocked = this.columns[1].length >= 5;
         },
         canAddCard(index) {
+            if (this.columnLocked && index === 0) return false;
             if (index === 0) {
                 return this.columns[index].length < 3;
             } else if (index === 1) {
@@ -140,7 +154,7 @@ new Vue({
             return true;
         },
         isColumnLocked(index) {
-            return this.columnLocked && index === 1;
+            return this.columnLocked && index === 0;
         }
     }
 });
