@@ -132,7 +132,12 @@ new Vue({
             this.columnLocked = this.columns[1].length >= 5;
         },
         canAddCard(index) {
-            return this.columns[index].length < 5;
+            if (index === 0) {
+                return this.columns[index].length < 3; // Ограничение на 3 карточки в первом столбце
+            } else if (index === 1) {
+                return this.columns[index].length < 5; // Ограничение на 5 карточек в остальных столбцах
+            }
+            return true;
         },
         isColumnLocked(index) {
             return this.columnLocked && index === 1;
