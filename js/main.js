@@ -7,7 +7,7 @@ new Vue({
         newCardTitle: '',
         newCardItems: [{ text: '' }, { text: '' }, { text: '' }],
         currentColumnIndex: 0,
-        errorMessage: '', // Переменная для хранения сообщения об ошибке
+        errorMessage: '',
     },
     template: `
         <div>
@@ -83,7 +83,7 @@ new Vue({
                 this.saveData();
                 this.cancelAddCard();
             } else {
-                this.errorMessage = 'Пожалуйста, заполните заголовок карточки и добавьте от 3 до 5 пунктов списка.';
+                this.errorMessage = 'Заполните заголовок карточки и заполни от 3 до 5 пунктов списка.';
             }
         },
         cancelAddCard() {
@@ -111,7 +111,7 @@ new Vue({
             if (completedItems > totalItems / 2 && this.columns[0].includes(card)) {
                 if (this.columns[1].length >= 5) {
                     this.errorMessage = 'Во втором столбце нет места';
-                    return; // Прерываем выполнение, если нет места
+                    return;
                 }
                 this.moveCard(card, 1);
             } else if (completedItems === totalItems && this.columns[1].includes(card)) {
@@ -133,9 +133,9 @@ new Vue({
         },
         canAddCard(index) {
             if (index === 0) {
-                return this.columns[index].length < 3; // Ограничение на 3 карточки в первом столбце
+                return this.columns[index].length < 3;
             } else if (index === 1) {
-                return this.columns[index].length < 5; // Ограничение на 5 карточек в остальных столбцах
+                return this.columns[index].length < 5;
             }
             return true;
         },
