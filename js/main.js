@@ -158,7 +158,6 @@ Vue.component('column', {
     props: ['column', 'index', 'canAddCard', 'isColumnLocked'],
     computed: {
         isFirstColumnLocked() {
-            // Проверяем, есть ли 5 элементов во втором столбце
             return this.index === 0 && this.$parent.columns[1].length >= 5;
         }
     },
