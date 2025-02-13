@@ -1,38 +1,31 @@
-new Vue({
-    el: '#app',
-    data: {
-        columns: [[], [], []],
-        columnLocked: false,
-        isAddingCard: false,
-        newCardTitle: '',
-        newCardItems: [{ text: '' }, { text: '' }, { text: '' }],
-        currentColumnIndex: 0,
-        currentCard: null,
-        errorMessage: '',
+Vue.component('note-app', {
+    data() {
+        return {
+            columns: [[], [], []],
+            columnLocked: false,
+            isAddingCard: false,
+            newCardTitle: '',
+            newCardItems: [{ text: '' }, { text: '' }, { text: '' }],
+            currentColumnIndex: 0,
+            currentCard: null,
+            errorMessage: '',
+        };
     },
     template: `
         <div>
             <div class="columns">
-                <div class="column" v-for="(column, index) in columns" :key="index">
-                    <h2>Столбец {{ index + 1 }}</h2>
-                    <div class="card-container">
-                        <div class="card" v-for="card in column" :key="card.id">
-                            <h3>{{ card.title }}</h3>
-                            <ul>
-                                <li v-for="(item, itemIndex) in card.items" :key="itemIndex">
-                                    <input type="checkbox" v-model="item.completed" 
-                                           :disabled="index === 0 && columns[1].length >= 5" 
-                                           @change="updateCard(card)">
-                                    {{ item.text }}
-                                </li>
-                            </ul>
-                            <p v-if="card.completedAt">Завершено: {{ card.completedAt }}</p>
-                            <button @click="removeCard(column, card)">Удалить карточку</button>
-                            <button @click="editCard(card)">Изменить содержание</button>
-                        </div>
-                    </div>
-                    <button v-if="canAddCard(index) && !isColumnLocked(index)" @click="startAddingCard(index)">Добавить карточку</button>
-                </div>
+                <column 
+                    v-for="(column, index) in columns" 
+                    :key="index" 
+                    :column="column" 
+                    :index="index" 
+                    @removeCard="removeCard" 
+                    @editCard="editCard" 
+                    @updateCard="updateCard" 
+                    :canAddCard="canAddCard(index)" 
+                    :isColumnLocked="isColumnLocked(index)"
+                    @startAddingCard="startAddingCard"
+                ></column>
             </div>
 
             <div class="add-card-form" v-if="isAddingCard">
@@ -159,4 +152,57 @@ new Vue({
             return this.columnLocked && index === 0;
         }
     }
+});
+
+Vue.component('column', {
+    props: ['column', 'index', 'canAddCard', 'isColumnLocked'],
+    computed: {
+        isFirstColumnLocked() {
+            // Проверяем, есть ли 5 элементов во втором столбце
+            return this.index === 0 && this.$parent.columns[1].length >= 5;
+        }
+    },
+    template: `
+        <div class="column">
+            <h2>Столбец {{ index + 1 }}</h2>
+            <div class="card-container">
+                <card 
+                    v-for="card in column" 
+                    :key="card.id" 
+                    :card="card" 
+                    :isFirstColumnLocked="isFirstColumnLocked"
+                    @removeCard="$emit('removeCard', column, card)" 
+                    @editCard="$emit('editCard', card)" 
+                    @updateCard="$emit('updateCard', card)"
+                ></card>
+            </div>
+            <button v-if="canAddCard && !isColumnLocked" @click="$emit('startAddingCard', index)">Добавить карточку</button>
+        </div>
+    `
+});
+Vue.component('card', {
+    props: ['card', 'isFirstColumnLocked'],
+    template: `
+        <div class="card">
+            <h3>{{ card.title }}</h3>
+            <ul>
+                <li v-for="(item, itemIndex) in card.items" :key="itemIndex">
+                    <input 
+                        type="checkbox" 
+                        v-model="item.completed" 
+                        @change="$emit('updateCard', card)" 
+                        :disabled="isFirstColumnLocked"
+                    >
+                    {{ item.text }}
+                </li>
+            </ul>
+            <p v-if="card.completedAt">Завершено: {{ card.completedAt }}</p>
+            <button @click="$emit('removeCard', card)">Удалить карточку</button>
+            <button @click="$emit('editCard', card)">Изменить содержание</button>
+        </div>
+    `
+});
+
+new Vue({
+    el: '#app'
 });
