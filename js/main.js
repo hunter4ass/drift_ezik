@@ -124,7 +124,7 @@ Vue.component('note-app', {
                 this.moveCard(card, 1);
             } else if (completedItems === totalItems && this.columns[1].includes(card)) {
                 this.moveCard(card, 2);
-                card.completedAt = new Date().toLocaleString(); // Устанавливаем дату и время выполнения
+                card.completedAt = new Date().toLocaleString();
             }
 
             this.checkColumnLock();
