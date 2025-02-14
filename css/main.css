@@ -1,37 +1,148 @@
 body {
-    font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    padding: 50px;
+    font-family: 'Verdana', sans-serif; /* Изменен шрифт */
+    margin: 0;
+    padding: 20px;
+    background-color: #f0f0f0; /* Добавлен фон для всего тела */
 }
 
-.columns {
+.kanban-board {
     display: flex;
-    flex-direction: row;
+    justify-content: space-around; /* Изменено на space-around для более равномерного распределения */
+    gap: 30px; /* Увеличен промежуток между колонками */
 }
 
 .column {
-    margin: 0 10px;
-    padding: 10px;
-    border: 3px solid ;
-    width: 300px;
-}
-
-.card-container {
+    width: 25%; /* Увеличена ширина колонки */
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    background-color: #2E8B57; /* Изменен цвет фона колонки */
+    border-radius: 10px; /* Увеличены радиусы скругления */
+    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.3); /* Изменена тень */
+    padding: 20px; /* Увеличены отступы */
 }
 
-.card {
-    margin: 15px;
-    padding: 20px;
-    border: 2px solid ;
+.column h2 {
+    text-align: center;
+    color: #fff; /* Изменен цвет заголовка */
+}
+
+.column > button {
+    max-width: 350px; /* Увеличена максимальная ширина кнопки */
+}
+
+.task {
+    background-color: #3CB371; /* Изменен цвет фона задачи */
+    margin: 15px 0; /* Увеличены отступы */
+    padding: 15px; /* Увеличены отступы */
+    border-radius: 8px; /* Увеличены радиусы скругления */
+    transition: box-shadow 0.3s, transform 0.3s; /* Добавлен эффект трансформации */
+}
+
+.task:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); /* Изменена тень при наведении */
+    transform: translateY(-2px); /* Добавлен эффект поднятия */
+}
+
+.task h3 {
+    margin: 0;
+    font-size: 1.4em; /* Увеличен размер шрифта заголовка */
+    color: #fff; /* Изменен цвет заголовка */
+}
+
+.task p {
+    margin: 5px 0;
+    color: #f8f8f8; /* Изменен цвет текста */
+    word-wrap: break-word;
 }
 
 button {
-    margin-top: 20px;
+    background-color: #1C1C1C; /* Изменен цвет кнопки */
+    color: #fff; /* Изменен цвет текста кнопки */
+    border: none;
+    border-radius: 5px;
+    padding: 12px 18px; /* Увеличены отступы */
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s; /* Добавлен эффект трансформации */
+    font-size: 1em; /* Увеличен размер шрифта */
 }
-.error {
-    color: #fd3737;
+
+button:hover {
+    background-color: #444; /* Изменен цвет кнопки при наведении */
+    transform: scale(1.05); /* Добавлен эффект увеличения */
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.modal {
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.7); /* Изменен цвет фона модального окна */
+    padding-top: 60px;
+}
+
+.modal-content {
+    background-color: #2E8B57; /* Изменен цвет фона модального окна */
+    margin: 5% auto;
+    padding: 25px; /* Увеличены отступы */
+    border: 1px solid #888;
+    width: 450px; /* Увеличена ширина модального окна */
+    border-radius: 10px; /* Увеличены радиусы скругления */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); /* Изменена тень */
+}
+
+.modal-content p {
+    margin: 0 5px; /* Увеличены отступы */
+}
+
+.close {
+    color: #fff; /* Изменен цвет кнопки закрытия */
+    float: right;
+    font-size: 30px; /* Увеличен размер шрифта */
     font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: #ff0000; /* Изменен цвет при наведении */
+    text-decoration: none;
+    cursor: pointer;
+}
+
+input[type="text"],
+textarea,
+input[type="date"] {
+    width: 100%;
+    padding: 12px; /* Увеличены отступы */
+    margin: 5px 0 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+input[type="text"]:focus,
+textarea:focus,
+input[type="date"]:focus {
+    border-color: #007bff; /* Цвет рамки при фокусе */
+    outline: none;
+}
+
+.task div {
+    margin-top: 5px;
+}
+
+.description-input {
+    width: 100%; /* Занимает всю ширину родительского элемента */
+    height: 150px; /* Фиксированная высота */
+    resize: none; /* Отключает возможность изменения размера */
+    box-sizing: border-box; /* Учитывает отступы и границы в ширине и высоте */
 }

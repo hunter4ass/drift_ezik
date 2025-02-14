@@ -1,208 +1,246 @@
-Vue.component('note-app', {
-    data() {
-        return {
-            columns: [[], [], []],
-            columnLocked: false,
-            isAddingCard: false,
-            newCardTitle: '',
-            newCardItems: [{ text: '' }, { text: '' }, { text: '' }],
-            currentColumnIndex: 0,
-            currentCard: null,
-            errorMessage: '',
-        };
+Vue.component('task', {
+    props: ['task', 'columnIndex', 'taskIndex', 'getNextColumnTitle'],
+    template: `
+        <div class="task">
+            <h3>{{ task.title }}</h3>
+            <p><strong>Описание:</strong> {{ task.description }}</p>
+            <p><strong>Создано:</strong> {{ task.createdAt }}</p>
+            <p><strong>Обновлено:</strong> {{ task.updatedAt }}</p>
+            <p><strong>Дэдлайн:</strong> {{ task.deadline }}</p>
+            <p v-if="task.returnReason && columnIndex === 1"><strong>Причина возврата:</strong> {{ task.returnReason }}</p>
+            <p v-if="task.status"><strong>Статус:</strong> {{ task.status }}</p>
+            <button v-if="columnIndex < 3" @click="$emit('move-task', columnIndex, columnIndex + 1, taskIndex)">
+                {{ getNextColumnTitle(columnIndex) }}
+            </button>
+            <button v-if="columnIndex === 2" @click="$emit('return-task', columnIndex, taskIndex)">Вернуть в работу</button>
+            <div>
+                <button v-if="columnIndex === 0 || columnIndex === 1 || columnIndex === 2" @click="$emit('edit-task', columnIndex, taskIndex)">Редактировать</button>
+                <button v-if="columnIndex === 0 || columnIndex === 3" @click="$emit('delete-task', columnIndex, taskIndex)">Удалить</button>
+            </div>
+        </div>
+    `
+});
+
+// Определение компонента колонки
+Vue.component('column', {
+    props: ['column', 'columnIndex', 'addTask', 'getNextColumnTitle'],
+    template: `
+        <div class="column">
+            <h2>{{ column.title }}</h2>
+            <task 
+                v-for="(task, taskIndex) in column.tasks" 
+                :key="taskIndex" 
+                :task="task" 
+                :columnIndex="columnIndex" 
+                :taskIndex="taskIndex" 
+                :getNextColumnTitle="getNextColumnTitle"
+                @move-task="$emit('move-task', ...arguments)"
+                @edit-task="$emit('edit-task', ...arguments)"
+                @delete-task="$emit('delete-task', ...arguments)"
+                @return-task="$emit('return-task', ...arguments)"
+            ></task>
+            <button v-if="columnIndex === 0" @click="addTask">Добавить задачу</button>
+        </div>
+    `
+});
+
+Vue.component('task-return-modal', {
+    props: {
+        showModal: Boolean,
+        newTask: Object,
+        editingTaskIndex: Number,
+        returnReason: String,
+        isReturn: Boolean,
+        saveTask: Function,
+        confirmReturn: Function,
+        closeModal: Function
     },
     template: `
-        <div>
-            <div class="columns">
-                <column 
-                    v-for="(column, index) in columns" 
-                    :key="index" 
-                    :column="column" 
-                    :index="index" 
-                    @removeCard="removeCard" 
-                    @editCard="editCard" 
-                    @updateCard="updateCard" 
-                    :canAddCard="canAddCard(index)" 
-                    :isColumnLocked="isColumnLocked(index)"
-                    @startAddingCard="startAddingCard"
-                ></column>
-            </div>
-
-            <div class="add-card-form" v-if="isAddingCard">
-                <h3>{{ currentCard ? 'Изменить карточку' : 'Добавить карточку' }} в Столбец {{ currentColumnIndex + 1 }}</h3>
-                <input v-model="newCardTitle" placeholder="Заголовок карточки" />
-                <div v-for="(item, index) in newCardItems" :key="index">
-                    <input v-model="item.text" placeholder="Текст пункта списка" />
-                    <button v-if="newCardItems.length > 3" @click="removeNewItem(index)">Удалить пункт</button>
+        <div v-if="showModal" class="modal">
+            <div class="modal-content">
+                <span class="close" @click="closeModal">&times;</span>
+                <h2>{{ isReturn ? 'Укажите причину возврата' : (editingTaskIndex !== null ? 'Редактировать задачу' : 'Добавить задачу') }}</h2>
+                <div v-if="!isReturn">
+                    <input v-model="newTask.title" placeholder="Заголовок задачи" maxlength="30"/>
+                    <textarea v-model="newTask.description" class="description-input" placeholder="Описание задачи" maxlength="300"></textarea>
+                    <p>Дедлайн:</p>
+                    <input type="date" v-model="newTask.deadline" />
+                    <button @click="saveTask">
+                        {{ editingTaskIndex !== null ? 'Сохранить изменения' : 'Добавить задачу' }}
+                    </button>
                 </div>
-                <button v-if="newCardItems.length < 5" @click="addNewItem">Добавить пункт списка</button>
-                <button @click="currentCard ? updateExistingCard() : addNewCard()">{{ currentCard ? 'Сохранить изменения' : 'Подтвердить' }}</button>
-                <button @click="cancelAddCard">Отмена</button>
+                <div v-else>
+                    <textarea v-model="newTask.description" class="description-input" placeholder="Причина возврата" maxlength="300"></textarea>
+                    <button @click="confirmReturn">Подтвердить возврат</button>
+                </div>
             </div>
-
-            <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
         </div>
-    `,
+    `
+});
+
+// Основное приложение
+const app = new Vue({
+    el: '#app',
+    data: {
+        columns: [
+            { title: 'Запланированные задачи', tasks: [] },
+            { title: 'Задачи в работе', tasks: [] },
+            { title: 'Тестирование', tasks: [] },
+            { title: 'Выполненные задачи', tasks: [] }
+        ],
+        newTask: {
+            title: '',
+            description: '',
+            deadline: ''
+        },
+        showModal: false,
+        editingTaskIndex: null,
+        editingColumnIndex: null,
+        returnReason: '',
+        showReturnModal: false
+    },
     created() {
-        this.loadData();
+        this.loadData(); // Загружаем данные из localStorage при создании приложения
     },
     methods: {
         loadData() {
-            const data = JSON.parse(localStorage.getItem('noteAppData'));
-            if (data) {
-                this.columns = data.columns;
+            const savedData = localStorage.getItem('kanbanData');
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                this.columns = parsedData.columns;
             }
         },
         saveData() {
-            localStorage.setItem('noteAppData', JSON.stringify({ columns: this.columns }));
+            const dataToSave = {
+                columns: this.columns
+            };
+            localStorage.setItem('kanbanData', JSON.stringify(dataToSave));
         },
-        startAddingCard(columnIndex) {
-            this.isAddingCard = true;
-            this.newCardTitle = '';
-            this.newCardItems = [{ text: '' }, { text: '' }, { text: '' }];
-            this.currentColumnIndex = columnIndex;
-            this.currentCard = null;
-            this.errorMessage = '';
-        },
-        addNewItem() {
-            this.newCardItems.push({ text: '' });
-        },
-        removeNewItem(index) {
-            this.newCardItems.splice(index, 1);
-        },
-        addNewCard() {
-            const items = this.newCardItems.filter(item => item.text.trim() !== '');
-            if (this.newCardTitle.trim() !== '' && items.length >= 3) {
-                const newCard = { id: Date.now(), title: this.newCardTitle, items, completedAt: null };
-                this.columns[this.currentColumnIndex].push(newCard);
-                this.saveData();
-                this.cancelAddCard();
-            } else {
-                this.errorMessage = 'Заполните заголовок карточки и добавьте минимум три пункта списка.';
+        addTask() {
+            if (this.newTask.title) {
+                const task = {
+                    ...this.newTask,
+                    createdAt: new Date().toLocaleString(),
+                    updatedAt: new Date().toLocaleString(),
+                    status: ''
+                };
+                this.columns[0].tasks.push(task);
+                this.resetNewTask();
+                this.showModal = false;
+                this.saveData(); // Сохраняем данные после добавления задачи
             }
+            this.editingTaskIndex = null;
+            this.editingColumnIndex = null;
         },
-        cancelAddCard() {
-            this.isAddingCard = false;
-            this.errorMessage = '';
-            this.currentCard = null;
-        },
-        removeCard(column, card) {
-            const index = column.indexOf(card);
-            if (index > -1) {
-                column.splice(index, 1);
-                this.saveData();
-            }
-        },
-        editCard(card) {
-            this.newCardTitle = card.title;
-            this.newCardItems = card.items.map(item => ({ text: item.text }));
-            this.isAddingCard = true;
-            this.currentColumnIndex = this.columns.findIndex(column => column.includes(card));
-            this.currentCard = card;
-            this.errorMessage = '';
-        },
-        updateExistingCard() {
-            const items = this.newCardItems.filter(item => item.text.trim() !== '');
-            if (this.newCardTitle.trim() !== '' && items.length >= 3) {
-                this.currentCard.title = this.newCardTitle;
-                this.currentCard.items = items;
-                this.saveData();
-                this.cancelAddCard();
-            } else {
-                this.errorMessage = 'Заполните заголовок карточки и добавьте минимум три пункта списка.';
-            }
-        },
-        updateCard(card) {
-            const totalItems = card.items.length;
-            const completedItems = card.items.filter(item => item.completed).length;
+        deleteTask(columnIndex, taskIndex) {
+            const taskTitle = this.columns[columnIndex].tasks[taskIndex].title; // Получаем заголовок задачи
+            const confirmDelete = confirm(`Вы уверены, что хотите удалить задачу "${taskTitle}"?`); // Запрашиваем подтверждение
 
-            if (completedItems > totalItems / 2 && this.columns[0].includes(card)) {
-                if (this.columns[1].length >= 5) {
-                    this.errorMessage = 'Во втором столбце нет места';
-                    return;
-                }
-                this.moveCard(card, 1);
-            } else if (completedItems === totalItems && this.columns[1].includes(card)) {
-                this.moveCard(card, 2);
-                card.completedAt = new Date().toLocaleString();
+            if (confirmDelete) {
+                this.columns[columnIndex].tasks.splice(taskIndex, 1); // Удаляем задачу
+                this.saveData(); // Сохраняем данные после удаления задачи
+            }
+        },
+        editTask(columnIndex, taskIndex) {
+            const task = this.columns[columnIndex].tasks[taskIndex];
+            this.newTask = { ...task };
+            this.editingTaskIndex = taskIndex;
+            this.editingColumnIndex = columnIndex;
+            this.showModal = true;
+        },
+        saveEditedTask() {
+            if (this.newTask.title) {
+                const task = this.columns[this.editingColumnIndex].tasks[this.editingTaskIndex];
+                Object.assign(task, this.newTask, { updatedAt: new Date().toLocaleString() });
+                this.resetNewTask();
+                this.showModal = false;
+                this.editingTaskIndex = null;
+                this.editingColumnIndex = null;
+                this.saveData(); // Сохраняем данные после редактирования задачи
+            }
+        },
+        returnTask(columnIndex, taskIndex) {
+            this.editingTaskIndex = taskIndex;
+            this.editingColumnIndex = columnIndex;
+            this.showReturnModal = true;
+            const task = this.columns[columnIndex].tasks[taskIndex];
+            this.returnReason = ''; // Сбрасываем причину возврата перед вводом
+        },
+
+        confirmReturn() {
+            const task = this.columns[this.editingColumnIndex].tasks[this.editingTaskIndex];
+            task.returnReason = this.returnReason; // Присваиваем причину возврата
+            this.moveTask(this.editingColumnIndex, 1, this.editingTaskIndex); // Перемещаем задачу в колонку "Задачи в работе"
+            this.returnReason = ''; // Сбрасываем причину возврата
+            this.showReturnModal = false; // Закрываем модальное окно
+            this.saveData(); // Сохраняем данные после подтверждения возврата
+        },
+
+        moveTask(fromColumnIndex, toColumnIndex, taskIndex) {
+            const task = this.columns[fromColumnIndex].tasks.splice(taskIndex, 1)[0];
+
+            // Проверяем, перемещается ли задача из третьего столбца во второй
+            if (fromColumnIndex === 2 && toColumnIndex === 1) {
+                // Если причина возврата существует, присваиваем её полю returnReason
+                task.returnReason = this.returnReason || 'Не указана';
+
+                // Добавляем текст причины возврата в описание задачи
+                task.description += `\nПричина возврата: ${task.returnReason}`; // Добавляем текст причины возврата
             }
 
-            this.checkColumnLock();
-            this.saveData();
-        },
-        moveCard(card, targetColumnIndex) {
-            const sourceColumnIndex = this.columns.findIndex(column => column.includes(card));
-            if (sourceColumnIndex !== -1) {
-                this.columns[sourceColumnIndex].splice(this.columns[sourceColumnIndex].indexOf(card), 1);
-                this.columns[targetColumnIndex].push(card);
+            if (toColumnIndex === 3) {
+                const deadlineDate = new Date(task.deadline);
+                const currentDate = new Date();
+                task.status = deadlineDate < currentDate ? 'Просроченная' : 'Выполненная в срок';
             }
-        },
-        checkColumnLock() {
-            this.columnLocked = this.columns[1].length >= 5;
-        },
-        canAddCard(index) {
-            if (this.columnLocked && index === 0) return false;
-            if (index === 0) {
-                return this.columns[index].length < 3;
-            } else if (index === 1) {
-                return this.columns[index].length < 5;
-            }
-            return true;
-        },
-        isColumnLocked(index) {
-            return this.columnLocked && index === 0;
-        }
-    }
-});
 
-Vue.component('column', {
-    props: ['column', 'index', 'canAddCard', 'isColumnLocked'],
-    computed: {
-        isFirstColumnLocked() {
-            return this.index === 0 && this.$parent.columns[1].length >= 5;
+            this.columns[toColumnIndex].tasks.push(task);
+            this.saveData(); // Сохраняем данные после перемещения задачи
+        },
+        getNextColumnTitle(columnIndex) {
+            switch (columnIndex) {
+                case 0: return 'В Работу';
+                case 1: return 'В Тестирование';
+                case 2: return 'Выполнено';
+                default: return '';
+            }
+        },
+        resetNewTask() {
+            this.newTask = { title: '', description: '', deadline: '' };
+        },
+        openAddTaskModal() {
+            this.resetNewTask();
+            this.editingTaskIndex = null;
+            this.editingColumnIndex = null;
+            this.showModal = true;
         }
     },
     template: `
-        <div class="column">
-            <h2>Столбец {{ index + 1 }}</h2>
-            <div class="card-container">
-                <card 
-                    v-for="card in column" 
-                    :key="card.id" 
-                    :card="card" 
-                    :isFirstColumnLocked="isFirstColumnLocked"
-                    @removeCard="$emit('removeCard', column, card)" 
-                    @editCard="$emit('editCard', card)" 
-                    @updateCard="$emit('updateCard', card)"
-                ></card>
-            </div>
-            <button v-if="canAddCard && !isColumnLocked" @click="$emit('startAddingCard', index)">Добавить карточку</button>
-        </div>
-    `
-});
-Vue.component('card', {
-    props: ['card', 'isFirstColumnLocked'],
-    template: `
-        <div class="card">
-            <h3>{{ card.title }}</h3>
-            <ul>
-                <li v-for="(item, itemIndex) in card.items" :key="itemIndex">
-                    <input 
-                        type="checkbox" 
-                        v-model="item.completed" 
-                        @change="$emit('updateCard', card)" 
-                        :disabled="isFirstColumnLocked"
-                    >
-                    {{ item.text }}
-                </li>
-            </ul>
-            <p v-if="card.completedAt">Завершено: {{ card.completedAt }}</p>
-            <button @click="$emit('removeCard', card)">Удалить карточку</button>
-            <button @click="$emit('editCard', card)">Изменить содержание</button>
-        </div>
-    `
-});
+        <div class="kanban-board">
+            <column 
+                v-for="(column, columnIndex) in columns" 
+                :key="columnIndex" 
+                :column="column" 
+                :columnIndex="columnIndex" 
+                :addTask="openAddTaskModal" 
+                :getNextColumnTitle="getNextColumnTitle"
+                @move-task="moveTask"
+                @edit-task="editTask"
+                @delete-task="deleteTask"
+                @return-task="returnTask"
+            ></column>
 
-new Vue({
-    el: '#app'
+            <task-return-modal 
+                v-if="showModal || showReturnModal" 
+                :showModal="showModal || showReturnModal" 
+                :newTask="newTask" 
+                :editingTaskIndex="editingTaskIndex" 
+                :returnReason="returnReason" 
+                :isReturn="showReturnModal"
+                :saveTask="editingTaskIndex !== null ? saveEditedTask : addTask" 
+                :confirmReturn="confirmReturn" 
+                :closeModal="() => { showModal = false; showReturnModal = false; }"
+            ></task-return-modal>
+        </div>
+    `
 });
