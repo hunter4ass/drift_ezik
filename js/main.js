@@ -14,7 +14,6 @@ Vue.component('user-modal', {
         <div v-if="showUserModal" class="modal">
             <div class="modal-content">
                 <span class="close" @click="closeModal">&times;</span>
-                <h2>{{ currentUser ? 'Сменить пользователя' : 'Регистрация' }}</h2>
                 <input v-model="username" placeholder="Введите имя" maxlength="30" class="title-task"/>
                 <button @click="register">
                     {{ currentUser ? 'Сменить пользователя' : 'Войти' }}
@@ -43,7 +42,6 @@ Vue.component('task', {
             <p><strong>Дэдлайн:</strong> {{ task.deadline }}</p>
             <p><strong>Автор:</strong> {{ task.author }}</p>
             <p v-if="task.returnReason && columnIndex === 1"><strong>Причина возврата:</strong> {{ task.returnReason }}</p>
-            <p v-if="task.status"><strong>Статус:</strong> {{ task.status }}</p>
             <button v-if="columnIndex < 3 && canMoveTask" @click="$emit('move-task', columnIndex, columnIndex + 1, taskIndex)">
                 {{ getNextColumnTitle(columnIndex) }}
             </button>
@@ -194,8 +192,6 @@ const app = new Vue({
         deleteTask(columnIndex, taskIndex) {
             const task = this.columns[columnIndex].tasks[taskIndex];
             if (task.author !== this.currentUser) {
-                alert('Вы не можете удалить чужую задачу!');
-                return;
             }
 
             const confirmDelete = confirm(`Вы уверены, что хотите удалить задачу "${task.title}"?`);
@@ -207,8 +203,6 @@ const app = new Vue({
         editTask(columnIndex, taskIndex) {
             const task = this.columns[columnIndex].tasks[taskIndex];
             if (task.author !== this.currentUser) {
-                alert('Вы не можете редактировать чужую задачу!');
-                return;
             }
 
             this.newTask = { ...task };
@@ -220,8 +214,6 @@ const app = new Vue({
             if (this.newTask.title) {
                 const task = this.columns[this.editingColumnIndex].tasks[this.editingTaskIndex];
                 if (task.author !== this.currentUser) {
-                    alert('Вы не можете редактировать чужую задачу!');
-                    return;
                 }
 
                 Object.assign(task, this.newTask, { updatedAt: new Date().toLocaleString() });
@@ -285,9 +277,7 @@ const app = new Vue({
         },
         openAddTaskModal() {
             if (!this.currentUser) {
-                alert('Пожалуйста, войдите в систему, чтобы добавлять задачи!');
                 this.showUserModal = true;
-                return;
             }
             this.resetNewTask();
             this.editingTaskIndex = null;
